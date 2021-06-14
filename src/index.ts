@@ -14,12 +14,14 @@ class Node{
 
   public canalesDis: number;
   public capacidad: number;
-  public ocupado: number
+  public ocupado: number;
+  public id: number;
 
-  constructor(capacidad ?: number){
+  constructor(id?: number, ocupado: number = 0, capacidad ?: number){
     this.canalesDis = 0;
     this.capacidad = capacidad ? 200: 250;
-    this.ocupado = 0;
+    this.ocupado = ocupado;
+    this.id = id ? id: 2;
   }
 }
 
@@ -27,7 +29,8 @@ const nodesC: Node[] = [];
 const nodeEvent = new Node();
 
 for(let i = 0; i < 7; i++){
-  nodesC.push(new Node());
+  if(i != 1)
+    nodesC.push(new Node(i+1, Math.random() * 120));
 }
 
 const maxLocales = 10780;
@@ -36,6 +39,7 @@ const maxEvento = 10000;
 const contador = document.querySelector('#contador') || document;
 const datos = document.querySelector('#datos') || document.body;
 const tabla = document.querySelector('#tables') || document.body;
+const events = document.querySelector('.movimientos') || document.body;
 
 const timer$ = interval(60).pipe( take(3601) );
 
@@ -89,49 +93,46 @@ var nodes = [
   };
     var network = new Network(container, data, options);
 
+  const makeTable = (): string => nodesC.reduce( (prev, curr) => prev + `
+  <tr>
+    <th scope="row">${ curr.id }</th>
+    <td>${ Math.round((curr.ocupado /  curr.capacidad) * 100) } %</td>
+  </tr>
+  `, '' )
+
 startButton?.addEventListener('click', (event: any) => {
   timer$.pipe( tap( (res: any) => {
     const minutos = res % 60;
     contador.textContent = `${Math.floor(res/60) < 10? `0${Math.floor(res/60)}`: Math.floor(res/60)}:${Math.round(60*(minutos/100)) < 10 ? `0${Math.round(60*(minutos/100))}` : Math.round(60*(minutos/100))}`;
     }
   ) ).subscribe((res: number) => {
-    nodesC[3].ocupado = nodesC[3].ocupado + 30;
-    const porcentaje = nodesC[3].ocupado /  nodesC[3].capacidad
+    let porcentaje = nodeEvent.ocupado /  nodeEvent.capacidad
+    if(porcentaje > 100){
+      const numRan = Math.random() * 6;
+      const nodeAux = numRan > 4 ? 4 : numRan > 2 ? 5 : 3;
+      nodesC[nodeAux - 1].ocupado = Math.random() * 5 > 1.9? nodesC[nodeAux - 1].ocupado + 1: nodesC[nodeAux - 1].ocupado - 1;
+      const p = document.createElement('p');
+      p.innerText = `Solicitando apoyo al nodo ${nodeAux}`
+      events.append(p); 
+    }else{
+      nodeEvent.ocupado =  Math.random() * 5 > 1.5? nodeEvent.ocupado + 30: nodeEvent.ocupado - 30;
+    }
     datos.innerHTML = `
       <p> Porcentaje de la celda pricipal ocupada: ${ Math.floor(porcentaje) < 10? `0${Math.floor(porcentaje)}`: Math.floor(porcentaje) }% </p>
-    `
-    if(porcentaje > 100){
+      `
+      nodesC.forEach( node => node.ocupado = Math.random() * 5 > 2.5? node.ocupado + 1: node.ocupado - 1);
       tabla.innerHTML = `
         <table class="table">
           <thead>
             <tr>
-              <th scope="col">#</th>
-              <th scope="col">First</th>
-              <th scope="col">Last</th>
-              <th scope="col">Handle</th>
+              <th scope="col">Nodo</th>
+              <th scope="col">Disponibilidad</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <th scope="row">1</th>
-              <td>Mark</td>
-              <td>Otto</td>
-              <td>@mdo</td>
-            </tr>
-            <tr>
-              <th scope="row">2</th>
-              <td>Jacob</td>
-              <td>Thornton</td>
-              <td>@fat</td>
-            </tr>
-            <tr>
-              <th scope="row">3</th>
-              <td colspan="2">Larry the Bird</td>
-              <td>@twitter</td>
-            </tr>
+            ${ makeTable() }
           </tbody>
         </table>
       `
-    }
   });
 })
